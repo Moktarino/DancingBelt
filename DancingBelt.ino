@@ -30,7 +30,6 @@
 #include <math.h>
 #define PI 3.14159265
 #define NUM_LEDS 144
-#define num_leds 143
 #define DATA_PIN 6
 
 int offsets[] = {-1524,-89,1450,-9,-32,25};
@@ -159,7 +158,7 @@ void loop() {
   
 }
 void  drawGradient(int num_leds, CRGB leds[], int peakLED, int distance){
-    int beginning, ending;
+    int beginning, ending, overlap;
 
     beginning = peakLED - distance;
     ending = peakLED + distance;
