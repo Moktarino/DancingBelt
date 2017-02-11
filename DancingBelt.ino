@@ -38,6 +38,7 @@ double accX, accY, accZ;
 double gyroX, gyroY, gyroZ;
 double gyroXangle, gyroYangle;
 double compAngleX, compAngleY;
+double compAngles[2];
 
 int peakLED, currentLED;
 uint32_t timer;
@@ -83,6 +84,33 @@ int getNextLEDPosition(double x, double y, int num_leds, int currentLED) {
 
 void setup() {
   Serial.begin(115200);
+  initFastLED();
+  initMPUraw();
+}
+
+void loop() {
+  movingBand();
+  FastLED.show();
+  delay(5);
+}
+
+void movingBand(){
+  getCompAngles(&*compAngles);
+  peakLED = getNextLEDPosition(compAngles[0], compAngles[1], NUM_LEDS-1, currentLED);
+  currentLED = peakLED;
+  fill_solid(leds,NUM_LEDS,CRGB::Black);
+  drawGradient(NUM_LEDS, leds, currentLED,5);
+  Serial.println(currentLED);
+}
+
+void initFastLED(){
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  FastLED.setBrightness(max_bright);
+  set_max_power_in_volts_and_milliamps(5, 500);    
+}
+
+
+void initMPUraw(){
   Wire.begin();
   TWBR = ((F_CPU / 400000L) - 16) / 2; // Set I2C frequency to 400kHz   
   i2cData[0] = 7; // Set the sample rate to 1000Hz - 8kHz/(7+1) = 1000Hz
@@ -110,16 +138,10 @@ void setup() {
   gyroYangle = pitch;
   compAngleX = roll;
   compAngleY = pitch;
-
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  FastLED.setBrightness(max_bright);
-  set_max_power_in_volts_and_milliamps(5, 500);    
-  
   timer = micros();
 }
 
-
-void loop() {
+void getCompAngles(double compAngles[]) {
   uint32_t  timer2 = micros();
   while (i2cRead(0x3B, i2cData, 14)) {if (timer2 > 5000) {break;}}
   
@@ -144,19 +166,13 @@ void loop() {
 
   compAngleX = 0.93 * (compAngleX + gyroXrate * dt) + 0.07 * roll;
   compAngleY = 0.93 * (compAngleY + gyroYrate * dt) + 0.07 * pitch;
+  compAngles[0] = compAngleX;
+  compAngles[1] = compAngleY;
 
-  peakLED = getNextLEDPosition(compAngleX, compAngleY, NUM_LEDS-1, currentLED);
-  currentLED = peakLED;
-
-  Serial.println(currentLED);
-  fill_solid(leds,NUM_LEDS,CRGB::Black);
-  drawGradient(NUM_LEDS, leds, currentLED,5);
-  FastLED.show();
-  currentLED = peakLED;
-  delay(20);
-
-  
 }
+  
+
+
 void  drawGradient(int num_leds, CRGB leds[], int peakLED, int distance){
     int beginning, ending, overlap;
 
